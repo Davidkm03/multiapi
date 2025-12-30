@@ -1,38 +1,253 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Proxy Chat</title>
+    <title>MultiAPI Nexus | Developer Hub</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
-    <div class="container">
+    <div class="app-container">
+        <!-- Top Navigation -->
         <header>
-            <h1>AI Proxy Chat</h1>
-            <p>Distribuyendo inteligencia entre múltiples proveedores gratuitos</p>
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                </div>
+                <span>MultiAPI Nexus</span>
+            </div>
+
+            <nav class="nav-tabs">
+                <button class="tab-btn active" onclick="switchTab('playground')">Playground</button>
+                <button class="tab-btn" onclick="switchTab('keys')">Mis Llaves</button>
+                <button class="tab-btn" onclick="switchTab('integration')">Documentación</button>
+            </nav>
+
+            <div style="width: 100px;"></div> <!-- Spacer for centering -->
         </header>
 
-        <main id="messages-container">
-            <!-- Los mensajes aparecerán aquí -->
-            <div class="message assistant">
-                <div class="content">Hola, soy tu asistente IA distribudo. ¿En qué puedo ayudarte hoy?</div>
-                <div class="service-badge">System</div>
-            </div>
-        </main>
+        <main>
+            <!-- PLAYGROUND TAB -->
+            <section id="playground" class="view-section active">
+                <div style="margin-bottom: 1rem; color: var(--text-muted); font-size: 0.8rem;">
+                    * Requiere una llave activa. Selecciona una en el menú inferior si usas el Playground.
+                    <select id="playground-key-select"
+                        style="background: var(--bg-element); color: white; border: 1px solid var(--border); padding: 4px; border-radius: 4px;">
+                        <option value="">Selecciona tu API Key...</option>
+                    </select>
+                </div>
+                <div class="chat-container">
+                    <div id="messages-container" class="messages-area">
+                        <!-- Welcome Message -->
+                        <div class="message assistant">
+                            <div class="msg-bubble">
+                                ¡Hola! Soy tu orquestador de IA. Estoy conectado a Groq, Cerebras y otros servicios.
+                                Escribe algo y usaré el mejor modelo disponible.
+                            </div>
+                            <div class="msg-meta">
+                                <span class="service-tag">SYSTEM</span>
+                            </div>
+                        </div>
+                    </div>
 
-        <div class="input-area">
-            <div class="current-service" id="service-indicator" style="display: none;">
-                Respuesta vía: <span id="service-name">...</span>
+                    <div class="input-area">
+                        <form id="chat-form" class="input-wrapper">
+                            <textarea id="message-input"
+                                placeholder="Escribe tu prompt aquí... (Shift+Enter para nueva línea)"
+                                required></textarea>
+                            <button type="submit" class="send-btn" id="send-btn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KEYS MANAGEMENT TAB -->
+            <section id="keys" class="view-section">
+                <div class="keys-container">
+                    <div class="docs-header">
+                        <h2>Gestión de Accesos</h2>
+                        <p>Genera llaves únicas para cada uno de tus proyectos.</p>
+                    </div>
+
+                    <div class="key-actions">
+                        <button class="primary-btn" onclick="createKey()">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <line x1="5" y1="12" x2="19" y2="12"></line>
+                            </svg>
+                            Nueva API Key
+                        </button>
+                    </div>
+
+                    <div id="keys-list" class="keys-list">
+                        <!-- Keys populated by JS -->
+                        <div style="text-align: center; color: var(--text-muted); padding: 2rem;">Cargando llaves...
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- INTEGRATION TAB -->
+            <section id="integration" class="view-section">
+                <div class="docs-container">
+                    <div class="docs-header">
+                        <h2>Integra tu API</h2>
+                        <p>Los desarrolladores no duermen, crean. Aquí tienes todo lo necesitas para conectar tu
+                            proyecto.</p>
+                    </div>
+
+                    <!-- API Endpoint Info -->
+                    <div class="api-card">
+                        <div class="card-header">
+                            <span class="card-title">Endpoint Principal</span>
+                            <button class="copy-btn"
+                                onclick="copyToClipboard(document.getElementById('apiUrl').innerText)">Copiar
+                                URL</button>
+                        </div>
+                        <div class="endpoint-display">
+                            <div class="method-url">
+                                <span class="method">POST</span>
+                                <span class="url" id="apiUrl">http://localhost:3000/api/chat</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Code Snippets -->
+                    <div class="api-card">
+                        <div class="card-header">
+                            <span class="card-title">Ejemplos de Código</span>
+                        </div>
+                        <div class="code-tabs">
+                            <div class="code-tab active" onclick="switchCode('js')">JavaScript (Fetch)</div>
+                            <div class="code-tab" onclick="switchCode('python')">Python</div>
+                            <div class="code-tab" onclick="switchCode('curl')">cURL</div>
+                        </div>
+
+                        <!-- JS Snippet -->
+                        <div id="code-js" class="code-block active">
+                            <span class="token keyword">async function</span> <span
+                                class="token function">chatWithAI</span>(userMessage) {
+                            <span class="token keyword">const</span> response = <span class="token keyword">await</span>
+                            <span class="token function">fetch</span>(<span
+                                class="token string">'http://localhost:3000/api/chat'</span>, {
+                            method: <span class="token string">'POST'</span>,
+                            headers: { <span class="token string">'Content-Type'</span>: <span
+                                class="token string">'application/json'</span> },
+                            body: JSON.<span class="token function">stringify</span>({
+                            messages: [{ role: <span class="token string">'user'</span>, content: userMessage }]
+                            })
+                            });
+
+                            <span class="token comment">// Lectura de Stream básico</span>
+                            <span class="token keyword">const</span> reader = response.body.<span
+                                class="token function">getReader</span>();
+                            <span class="token keyword">const</span> decoder = <span class="token keyword">new</span>
+                            <span class="token function">TextDecoder</span>();
+
+                            <span class="token keyword">while</span> (<span class="token keyword">true</span>) {
+                            <span class="token keyword">const</span> { done, value } = <span
+                                class="token keyword">await</span> reader.<span class="token function">read</span>();
+                            <span class="token keyword">if</span> (done) <span class="token keyword">break</span>;
+                            console.<span class="token function">log</span>(decoder.<span
+                                class="token function">decode</span>(value));
+                            }
+                            }
+                        </div>
+
+                        <!-- Python Snippet -->
+                        <div id="code-python" class="code-block">
+                            <span class="token keyword">import</span> requests
+
+                            url = <span class="token string">"http://localhost:3000/api/chat"</span>
+                            payload = {
+                            <span class="token string">"messages"</span>: [
+                            {<span class="token string">"role"</span>: <span class="token string">"user"</span>, <span
+                                class="token string">"content"</span>: <span class="token string">"Hola mundo!"</span>}
+                            ]
+                            }
+
+                            response = requests.<span class="token function">post</span>(url, json=payload, stream=<span
+                                class="token keyword">True</span>)
+
+                            <span class="token keyword">for</span> chunk <span class="token keyword">in</span>
+                            response.iter_content(chunk_size=None):
+                            <span class="token keyword">if</span> chunk:
+                            <span class="token function">print</span>(chunk.<span
+                                class="token function">decode</span>(<span class="token string">'utf-8'</span>),
+                            end=<span class="token string">''</span>)
+                        </div>
+
+                        <!-- cURL Snippet -->
+                        <div id="code-curl" class="code-block">
+                            curl -X POST http://localhost:3000/api/chat \
+                            -H <span class="token string">"Content-Type: application/json"</span> \
+                            -d '{
+                            <span class="token string">"messages"</span>: [{"role": <span
+                                class="token string">"user"</span>, "content": <span class="token string">"Explícame la
+                                teoría de cuerdas"</span>}]
+                            }' --no-buffer
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-card">
+            <div class="login-logo">
+                <div class="logo-icon" style="width: 48px; height: 48px;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                    </svg>
+                </div>
             </div>
-            <form id="chat-form">
-                <textarea id="message-input" placeholder="Escribe tu mensaje aquí..." rows="3"></textarea>
-                <button type="submit" id="send-btn">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                </button>
+            <h2 style="margin-bottom: 0.5rem;">Bienvenido</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem;">Ingresa tu contraseña de administrador para
+                gestionar el Nexus.</p>
+
+            <form id="login-form">
+                <input type="password" id="admin-password" placeholder="Contraseña Admin" required>
+                <button type="submit" class="primary-btn"
+                    style="width: 100%; justify-content: center;">Ingresar</button>
             </form>
+            <p id="login-error" style="color: #ef4444; margin-top: 1rem; font-size: 0.9rem; display: none;">Contraseña
+                incorrecta</p>
         </div>
     </div>
+
+    <!-- Create Key Modal -->
+    <div id="create-modal-overlay" class="modal-overlay">
+        <div class="modal">
+            <h3>Nueva API Key</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Dale un nombre descriptivo para
+                identificarla luego.</p>
+            <input type="text" id="new-key-name" placeholder="Ej: Proyecto React, Bot Telegram..." autofocus>
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button class="primary-btn" onclick="confirmCreateKey()">Crear</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <span id="toast-icon">✅</span>
+        <span id="toast-msg">Operación exitosa</span>
+    </div>
+
     <script src="script.js"></script>
 </body>
+
 </html>
