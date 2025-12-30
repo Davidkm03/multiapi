@@ -129,13 +129,39 @@
                             <span class="card-title">Ejemplos de Código</span>
                         </div>
                         <div class="code-tabs">
-                            <div class="code-tab active" onclick="switchCode('js')">JavaScript (Fetch)</div>
+                            <div class="code-tab active" onclick="switchCode('php')">PHP / Laravel</div>
+                            <div class="code-tab" onclick="switchCode('js')">JavaScript</div>
                             <div class="code-tab" onclick="switchCode('python')">Python</div>
                             <div class="code-tab" onclick="switchCode('curl')">cURL</div>
                         </div>
 
+                        <!-- PHP / Laravel Snippet -->
+                        <div id="code-php" class="code-block active">
+                            <span class="token comment">// .env de Laravel:</span>
+                            <span class="token comment">// OPENAI_API_KEY=sk-multi-tu-llave</span>
+                            <span class="token comment">// OPENAI_BASE_URL=http://localhost:3000</span>
+
+                            <span class="token keyword">use</span> OpenAI\Laravel\Facades\OpenAI;
+
+                            $response = OpenAI::chat()->create([
+                            <span class="token string">'model'</span> => <span class="token string">'default'</span>,
+                            <span class="token string">'messages'</span> => [
+                            [<span class="token string">'role'</span> => <span class="token string">'system'</span>,
+                            <span class="token string">'content'</span> => <span class="token string">'JSON
+                                Valido'</span>],
+                            [<span class="token string">'role'</span> => <span class="token string">'user'</span>, <span
+                                class="token string">'content'</span> => <span class="token string">'Dame
+                                datos'</span>],
+                            ],
+                            <span class="token string">'response_format'</span> => [<span
+                                class="token string">'type'</span> => <span class="token string">'json_object'</span>]
+                            ]);
+
+                            return response()->json(json_decode($response->choices[0]->message->content));
+                        </div>
+
                         <!-- JS Snippet -->
-                        <div id="code-js" class="code-block active">
+                        <div id="code-js" class="code-block">
                             <span class="token keyword">async function</span> <span
                                 class="token function">chatWithAI</span>(userMessage) {
                             <span class="token keyword">const</span> response = <span class="token keyword">await</span>

@@ -209,8 +209,23 @@ main {
     border-color: rgba(249, 115, 22, 0.2);
 }
 
+
 .service-tag.cerebras {
     color: var(--primary);
+}
+
+.service-tag.sambanova {
+    color: #8b5cf6;
+    /* Violeta */
+    background: rgba(139, 92, 246, 0.1);
+    border-color: rgba(139, 92, 246, 0.2);
+}
+
+.service-tag.pollinations {
+    color: #ec4899;
+    /* Pink */
+    background: rgba(236, 72, 153, 0.1);
+    border-color: rgba(236, 72, 153, 0.2);
 }
 
 .input-area {
@@ -656,4 +671,134 @@ button.send-btn:hover {
     margin-bottom: 2rem;
     display: flex;
     justify-content: center;
+}
+
+/* --- RESPONSIVE DESIGN --- */
+
+@media (max-width: 768px) {
+
+    /* Layout adjustments */
+    .app-container {
+        height: 100dvh;
+        /* Use dynamic viewport height for mobile */
+    }
+
+    header {
+        padding: 1rem;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .nav-tabs {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .tab-btn {
+        flex: 1;
+        padding: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    /* Chat Interface */
+    .view-section {
+        padding: 0.5rem;
+    }
+
+    .chat-container {
+        height: calc(100dvh - 150px);
+        /* Adjust based on header height */
+        max-width: 100%;
+        border-radius: var(--radius-md);
+    }
+
+    .messages-area {
+        padding: 1rem;
+    }
+
+    .message {
+        max-width: 95%;
+    }
+
+    .input-area {
+        padding: 0.75rem;
+    }
+
+    /* Keys Dashboard */
+    .key-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .key-item>div:last-child {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .key-value-blur {
+        font-size: 0.85rem;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Docs / Integration */
+    .api-card {
+        border-radius: var(--radius-md);
+    }
+
+    .endpoint-display {
+        padding: 1rem;
+    }
+
+    .method-url {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .docs-header h2 {
+        font-size: 1.75rem;
+    }
+
+    .code-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 2px;
+        /* Hide scrollbar visual glitch if any */
+    }
+
+    /* Modals */
+    .modal {
+        width: 90%;
+        padding: 1.5rem;
+    }
+
+    /* Login */
+    .login-card {
+        width: 90%;
+        padding: 2rem 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo span {
+        font-size: 1.1rem;
+    }
+
+    .msg-bubble {
+        padding: 0.6rem 0.85rem;
+        font-size: 0.9rem;
+    }
+
+    .service-tag {
+        font-size: 0.6rem;
+    }
+
+    .toast {
+        width: 90%;
+        right: 5%;
+        bottom: 1rem;
+    }
 }

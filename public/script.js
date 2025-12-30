@@ -263,8 +263,27 @@ function addMessage(role, content, service = null) {
     if (role === 'assistant') {
         const serviceName = service || 'Unknown';
         metaDiv.innerHTML = `<span class="service-tag ${serviceName.toLowerCase()}">${serviceName}</span> <span>${time}</span>`;
+
+        // Render Markdown Images (Robust)
+        const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
+        if (content.match(imgRegex)) {
+            // Reemplazamos y añadimos manejo de errores
+            const html = content.replace(imgRegex, (match, alt, src) => {
+                return `<div class="img-wrapper" style="margin-top: 10px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
+                    <img src="${src}" alt="${alt}" 
+                        style="width: 100%; height: auto; display: block; min-height: 200px; background: #222;"
+                        onload="this.style.minHeight='auto'"
+                        onerror="this.onerror=null; this.src='https://placehold.co/600x400/18181b/FFF?text=Error+Cargando+Imagen';">
+                </div>`;
+            });
+            bubbleDiv.innerHTML = html;
+        } else {
+            bubbleDiv.textContent = content;
+        }
+
     } else {
         metaDiv.textContent = time;
+        bubbleDiv.textContent = content;
     }
 
     messageDiv.appendChild(metaDiv);
@@ -332,11 +351,36 @@ async function sendMessage(e) {
 
             const chunk = decoder.decode(value, { stream: true });
             fullResponse += chunk;
-            responseBubble.textContent = fullResponse;
+
+            // Simple markdown image render for streaming content
+            const imgRegex = /!\[(.*?)\]\((.*?)\)/g;
+            if (fullResponse.match(imgRegex)) {
+                const html = fullResponse.replace(imgRegex, (match, alt, src) => {
+                    return `<div class="img-wrapper" style="margin-top: 10px; border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
+                        <img src="${src}" alt="${alt}" 
+                            style="width: 100%; height: auto; display: block; min-height: 200px; background: #222;"
+                            onload="this.style.minHeight='auto'"
+                            onerror="this.onerror=null; this.src='https://placehold.co/600x400/18181b/FFF?text=Error+Cargando+Imagen';">
+                    </div>`;
+                });
+                responseBubble.innerHTML = html;
+            } else {
+                responseBubble.textContent = fullResponse;
+            }
+
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
 
-        conversationHistory.push({ role: 'assistant', content: fullResponse });
+        // Optimización de Historial: NO guardar el Base64 gigante en el historial de contexto
+        // Si guardamos la imagen completa, reventamos el límite de tokens de Groq/Cerebras (Error 413)
+        // Guardamos solo un placeholder text para que la IA sepa que hizo una imagen, pero no consuma mem.
+
+        let historyContent = fullResponse;
+        if (fullResponse.includes('data:image')) {
+            historyContent = fullResponse.replace(/\(data:image\/[^)]+\)/g, '(imagen_generada_placeholder)');
+        }
+
+        conversationHistory.push({ role: 'assistant', content: historyContent });
 
         // Refresh usage count in background quietly if we are on keys tab
         // fetchKeys(); 

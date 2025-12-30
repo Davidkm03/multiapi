@@ -11,7 +11,8 @@ const client = new OpenAI({
 });
 
 // Usamos un modelo gratuito disponible en OpenRouter
-const MODEL = 'meta-llama/llama-3-8b-instruct:free';
+// Usamos el modelo más potente del tier gratuito actual (Gemini 2.0 Flash Experimental)
+const MODEL = 'google/gemini-2.0-flash-exp:free';
 
 export const openRouterService: AIService = {
     name: 'openrouter',

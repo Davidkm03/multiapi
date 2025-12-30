@@ -2,87 +2,106 @@ import { groqService } from './services/groq';
 import { cerebrasService } from './services/cerebras';
 import { geminiService } from './services/gemini';
 import { openRouterService } from './services/openrouter';
+import { sambaNovaService } from './services/sambanova';
+import { imageService } from './services/images';
 import { dbManager } from './db';
 import type { AIService, ChatMessage } from './types';
 
 // Configuración
 const PORT = process.env.PORT || 3000;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || 'admin123'; // Contraseña simple para el dashboard
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'admin123';
 
-// Lista de servicios disponibles
+// Lista de servicios de TEXTO
 const aiServices: AIService[] = [
     groqService,
     cerebrasService,
     geminiService,
     openRouterService,
+    sambaNovaService,
 ];
 
-// Estado para rotación Round-Robin
 let currentServiceIndex = 0;
 
 function getNextService(): AIService {
+    if (aiServices.length === 0) throw new Error("No AI services available");
     const service = aiServices[currentServiceIndex];
     currentServiceIndex = (currentServiceIndex + 1) % aiServices.length;
-    return service;
+    return service || aiServices[0];
 }
 
 console.log(`🚀 AI Proxy API running at http://localhost:${PORT}`);
 
 Bun.serve({
     port: PORT,
+    idleTimeout: 60, // Aumentamos timeout para generación de imágenes (Flux puede tardar >10s)
     async fetch(req) {
         const url = new URL(req.url);
         const { pathname } = url;
 
-        // CORS Headers helper
         const corsHeaders = {
             'Access-Control-Allow-Origin': '*',
             'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
             'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Admin-Secret'
         };
 
-        if (req.method === 'OPTIONS') {
-            return new Response(null, { headers: corsHeaders });
-        }
+        if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
-        // --- PUBLIC STATIC FILES ---
+        // --- STATIC ---
         if (req.method === 'GET') {
             if (pathname === '/') return new Response(Bun.file('public/index.html'));
             const publicFile = Bun.file(`public${pathname}`);
             if (await publicFile.exists()) return new Response(publicFile);
         }
 
-        // --- API: CHAT (PROTEGIDO POR API KEY) ---
+        // --- CHAT API ---
         if (req.method === 'POST' && (pathname === '/chat' || pathname === '/api/chat')) {
-            // Verificar Auth Header
             const authHeader = req.headers.get('Authorization');
             const apiKey = authHeader?.replace('Bearer ', '');
 
-            // Permitir localhost sin key para pruebas rápidas O forzar key siempre
-            // Para este caso "Dashboard real", vamos a requerir key o verificar si viene del Playground local (que ajustaremos luego)
-            // Por ahora, validamos contra DB
             if (!apiKey || !dbManager.validateAndTrack(apiKey)) {
                 return new Response(JSON.stringify({ error: 'Unauthorized: Invalid API Key' }), {
-                    status: 401,
-                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                    status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
                 });
             }
 
             try {
-                const body = await req.json();
-                const messages = body.messages as ChatMessage[];
+                const body = await req.json() as { messages: ChatMessage[] };
+                const messages = body.messages;
+                if (!Array.isArray(messages)) return new Response('Invalid messages', { status: 400 });
 
-                if (!Array.isArray(messages)) {
-                    return new Response('Invalid messages format', { status: 400, headers: corsHeaders });
+                // SANITIZACIÓN ROBUSTA: Eliminamos Data URLs gigantes para no romper Groq/Cerebras (Error 413)
+                // Esto asegura que aunque el frontend envíe la imagen completa, el backend la "adelgaza" antes de llamar a la IA.
+                const sanitizedMessages = messages.map(m => ({
+                    ...m,
+                    content: m.content ? m.content.replace(/!\[.*?\]\(data:image\/.*?\)/g, '[Imagen Generada - Omitida por peso]') : ''
+                }));
+
+                // DETECTAR INTENCIÓN DE IMAGEN (Smart Routing)
+                const lastMessage = sanitizedMessages[sanitizedMessages.length - 1];
+                const content = lastMessage?.content?.trim().toLowerCase() || '';
+
+                // Triggers: Comandos explícitos o lenguaje natural
+                const isImageRequest =
+                    content.startsWith('/img') ||
+                    content.startsWith('dibuja') ||
+                    content.startsWith('crea una imagen') ||
+                    content.startsWith('genera una imagen') ||
+                    content.includes('generame una imagen');
+
+                let service: AIService;
+
+                if (isImageRequest) {
+                    service = imageService;
+                    console.log(`🎨 Smart Routing: Image intent detected causing switch to Image Service. Key: ${apiKey.slice(0, 8)}...`);
+                } else {
+                    service = getNextService();
+                    console.log(`Using [${service.name}] service for key: ${apiKey.slice(0, 8)}...`);
                 }
-
-                const service = getNextService();
-                console.log(`Using [${service.name}] service for key: ${apiKey.slice(0, 8)}...`);
 
                 const stream = new ReadableStream({
                     async start(controller) {
                         try {
-                            for await (const chunk of service.chat(messages)) {
+                            for await (const chunk of service.chat(sanitizedMessages)) {
                                 controller.enqueue(new TextEncoder().encode(chunk));
                             }
                             controller.close();
@@ -104,15 +123,12 @@ Bun.serve({
                 });
 
             } catch (error) {
-                console.error('Error processing chat request:', error);
-                return new Response('Internal Server Error', { status: 500, headers: corsHeaders });
+                console.error('Error:', error);
+                return new Response('Server Error', { status: 500, headers: corsHeaders });
             }
         }
 
         // --- API: GESTIÓN DE KEYS (PROTEGIDO POR ADMIN SECRET) ---
-        // Headers: X-Admin-Secret: admin123
-
-        // Middleware Admin simple
         const checkAdmin = () => req.headers.get('X-Admin-Secret') === ADMIN_SECRET;
 
         if (pathname === '/api/keys') {
@@ -124,7 +140,8 @@ Bun.serve({
             }
 
             if (req.method === 'POST') {
-                const body = await req.json();
+                // Fix: Explicit type assertion for body
+                const body = await req.json() as { name?: string };
                 const newKey = dbManager.createKey(body.name || 'Unnamed Project');
                 return new Response(JSON.stringify(newKey), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
             }
