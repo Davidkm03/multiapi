@@ -141,6 +141,26 @@ Bun.serve({
             }
         }
 
+        // --- ENDPOINTS DE API KEYS (ACCESS MANAGEMENT) ---
+        if (req.method === 'GET' && pathname === '/api/keys') {
+            const keys = dbManager.listApiKeys();
+            return new Response(JSON.stringify(keys), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (req.method === 'POST' && pathname === '/api/keys') {
+            const body = await req.json() as { name: string };
+            if (!body.name) return new Response('Name required', { status: 400 });
+
+            const newKey = dbManager.createApiKey(body.name);
+            return new Response(JSON.stringify(newKey), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
+        if (req.method === 'DELETE' && pathname.startsWith('/api/keys/')) {
+            const id = parseInt(pathname.split('/').pop() || '0');
+            dbManager.deleteApiKey(id);
+            return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+
         // --- ENDPOINTS DE WORKFLOWS (AUTOMATIZACIÓN) ---
 
         // 1. Crear un Workflow (Guardar Receta)

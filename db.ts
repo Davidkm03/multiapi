@@ -69,6 +69,34 @@ export const dbManager = {
         });
     },
 
+
+
+    // --- API KEYS ---
+    createApiKey: (name: string) => {
+        const key = 'sk-bun-' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        db.run('INSERT INTO api_keys (key, name) VALUES (?, ?)', [key, name]);
+        return { key, name };
+    },
+
+    listApiKeys: () => {
+        return db.query('SELECT id, name, key, created_at, last_used_at, usage_count FROM api_keys ORDER BY created_at DESC').all();
+    },
+
+    deleteApiKey: (id: number) => {
+        db.run('DELETE FROM api_keys WHERE id = ?', [id]);
+    },
+
+    validateApiKey: (key: string) => {
+        const row = db.query('SELECT * FROM api_keys WHERE key = ?').get(key) as any;
+        if (row) {
+            // Update usage stats (async fire & forget)
+            db.run('UPDATE api_keys SET last_used_at = CURRENT_TIMESTAMP, usage_count = usage_count + 1 WHERE id = ?', [row.id]);
+            return true;
+        }
+        return false;
+    },
+
+    // --- WORKFLOWS ---
     listWorkflows: () => {
         const rows = db.query('SELECT * FROM workflows ORDER BY created_at DESC').all();
         return rows.map((r: any) => ({

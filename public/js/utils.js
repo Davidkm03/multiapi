@@ -31,6 +31,11 @@ export function switchTab(tabName) {
     // Optimización: Buscamos el botón que tenga el onclick correspondiente
     const btn = document.querySelector(`button[onclick="switchTab('${tabName}')"]`);
     if (btn) btn.classList.add('active');
+
+    // Trigger data loading if switching to keys tab
+    if (tabName === 'keys' && window.loadKeys) {
+        window.loadKeys();
+    }
 }
 
 // Update global utils with switchTab
