@@ -244,6 +244,50 @@ window.deleteKey = async function (id) {
     }
 };
 
+// --- SYSTEM PROMPT CONFIG (AGENT SETTINGS) ---
+let systemPrompt = null;
+const settingsModal = document.getElementById('settings-modal-overlay');
+const systemPromptInput = document.getElementById('system-prompt-input');
+
+window.openSettings = function () {
+    if (settingsModal) {
+        settingsModal.style.display = 'flex';
+        systemPromptInput.value = systemPrompt || '';
+        setTimeout(() => systemPromptInput.focus(), 100);
+    }
+};
+
+window.closeSettings = function () {
+    if (settingsModal) settingsModal.style.display = 'none';
+};
+
+window.saveSettings = function () {
+    const val = systemPromptInput.value.trim();
+    systemPrompt = val.length > 0 ? val : null;
+    settingsModal.style.display = 'none';
+
+    // Feedback visual
+    showToast(systemPrompt ? 'Rol de Agente Actualizado' : 'Modo Chat Estándar', 'success');
+
+    // Gestión Inteligente del Historial
+    // Si la conversación apenas empieza, inyectamos el system prompt primero.
+    if (conversationHistory.length === 0 && systemPrompt) {
+        conversationHistory.push({ role: 'system', content: systemPrompt });
+    }
+    // Si ya hay historial y el primer mensaje ERA un system prompt, lo actualizamos
+    else if (conversationHistory.length > 0 && conversationHistory[0].role === 'system') {
+        if (systemPrompt) {
+            conversationHistory[0].content = systemPrompt;
+        } else {
+            conversationHistory.shift(); // Si el usuario lo borró, lo quitamos del historial
+        }
+    }
+    // Si ya hay historial pero NO había system prompt, lo insertamos al inicio
+    else if (conversationHistory.length > 0 && systemPrompt) {
+        conversationHistory.unshift({ role: 'system', content: systemPrompt });
+    }
+};
+
 // --- CHAT LOGIC ---
 
 function addMessage(role, content, service = null) {
@@ -293,11 +337,40 @@ function addMessage(role, content, service = null) {
     return bubbleDiv;
 }
 
+// --- IMAGE UPLOAD LOGIC ---
+let selectedImageBase64 = null;
+
+const imageUploadInput = document.getElementById('image-upload');
+const imagePreviewContainer = document.getElementById('image-preview-container');
+const imagePreviewEl = document.getElementById('image-preview');
+
+if (imageUploadInput) {
+    imageUploadInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+            selectedImageBase64 = evt.target.result;
+            imagePreviewEl.src = selectedImageBase64;
+            imagePreviewContainer.style.display = 'flex';
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+window.clearImageSelection = function () {
+    selectedImageBase64 = null;
+    imageUploadInput.value = ''; // Reset input
+    imagePreviewContainer.style.display = 'none';
+};
+
 async function sendMessage(e) {
     if (e) e.preventDefault();
 
     const text = messageInput.value.trim();
-    if (!text) return;
+    // Permitimos enviar si hay texto O imagen
+    if (!text && !selectedImageBase64) return;
 
     const apiKey = playgroundKeySelect.value;
     if (!apiKey) {
@@ -307,12 +380,26 @@ async function sendMessage(e) {
     }
 
     messageInput.value = '';
+
+    // UI Updates
     messageInput.disabled = true;
     sendBtn.disabled = true;
     sendBtn.style.opacity = '0.5';
 
-    addMessage('user', text);
-    conversationHistory.push({ role: 'user', content: text });
+    // Construimos el mensaje de usuario
+    // Si hay imagen, la mostramos en el chat también
+    if (selectedImageBase64) {
+        // Pseudo-markdown para mostrar imagen localmente
+        const imgMarkdown = `\n![Uploaded Image](${selectedImageBase64})`;
+        addMessage('user', text + imgMarkdown);
+        conversationHistory.push({ role: 'user', content: text + imgMarkdown });
+
+        // Limpiamos selección visual
+        clearImageSelection();
+    } else {
+        addMessage('user', text);
+        conversationHistory.push({ role: 'user', content: text });
+    }
 
     const responseBubble = addMessage('assistant', 'Pensando...');
     let fullResponse = '';

@@ -4,6 +4,7 @@ import { geminiService } from './services/gemini';
 import { openRouterService } from './services/openrouter';
 import { sambaNovaService } from './services/sambanova';
 import { imageService } from './services/images';
+import { isWorkflowRequest, generateWorkflow } from './services/workflow-generator';
 import { dbManager } from './db';
 import type { AIService, ChatMessage } from './types';
 
@@ -26,6 +27,7 @@ function getNextService(): AIService {
     if (aiServices.length === 0) throw new Error("No AI services available");
     const service = aiServices[currentServiceIndex];
     currentServiceIndex = (currentServiceIndex + 1) % aiServices.length;
+    // TypeScript check: service should exist given the length check, but fallback to index 0 just in case
     return service || aiServices[0];
 }
 
@@ -76,32 +78,40 @@ Bun.serve({
                     content: m.content ? m.content.replace(/!\[.*?\]\(data:image\/.*?\)/g, '[Imagen Generada - Omitida por peso]') : ''
                 }));
 
-                // DETECTAR INTENCIÓN DE IMAGEN (Smart Routing)
+                // DETECTAR INTENCIÓN (Smart Routing)
                 const lastMessage = sanitizedMessages[sanitizedMessages.length - 1];
-                const content = lastMessage?.content?.trim().toLowerCase() || '';
+                const content = lastMessage?.content?.trim() || '';
+                const contentLower = content.toLowerCase();
 
-                // Triggers: Comandos explícitos o lenguaje natural
-                const isImageRequest =
-                    content.startsWith('/img') ||
-                    content.startsWith('dibuja') ||
-                    content.startsWith('crea una imagen') ||
-                    content.startsWith('genera una imagen') ||
-                    content.includes('generame una imagen');
+                // 1. Check for Image Request
+                const isImageReq =
+                    contentLower.startsWith('/img') ||
+                    contentLower.startsWith('dibuja') ||
+                    contentLower.startsWith('crea una imagen') ||
+                    contentLower.startsWith('genera una imagen') ||
+                    contentLower.includes('generame una imagen');
 
-                let service: AIService;
+                // 2. Check for Workflow/Automation Request
+                const isWorkflowReq = isWorkflowRequest(content);
 
-                if (isImageRequest) {
-                    service = imageService;
-                    console.log(`🎨 Smart Routing: Image intent detected causing switch to Image Service. Key: ${apiKey.slice(0, 8)}...`);
+                let responseGenerator: AsyncGenerator<string>;
+
+                if (isImageReq) {
+                    console.log(`[Routing] Image request detected. Key: ${apiKey.slice(0, 8)}...`);
+                    responseGenerator = imageService.chat(sanitizedMessages);
+                } else if (isWorkflowReq) {
+                    console.log(`[Routing] Workflow request detected. Key: ${apiKey.slice(0, 8)}...`);
+                    responseGenerator = generateWorkflow(content);
                 } else {
-                    service = getNextService();
-                    console.log(`Using [${service.name}] service for key: ${apiKey.slice(0, 8)}...`);
+                    const service = getNextService();
+                    console.log(`[Routing] Using ${service.name}. Key: ${apiKey.slice(0, 8)}...`);
+                    responseGenerator = service.chat(sanitizedMessages);
                 }
 
                 const stream = new ReadableStream({
                     async start(controller) {
                         try {
-                            for await (const chunk of service.chat(sanitizedMessages)) {
+                            for await (const chunk of responseGenerator) {
                                 controller.enqueue(new TextEncoder().encode(chunk));
                             }
                             controller.close();
@@ -112,19 +122,96 @@ Bun.serve({
                     },
                 });
 
+                // Determine service name for header
+                const serviceName = isImageReq ? 'image' : isWorkflowReq ? 'workflow-generator' : 'ai-chat';
+
                 return new Response(stream, {
                     headers: {
                         ...corsHeaders,
                         'Content-Type': 'text/event-stream',
                         'Cache-Control': 'no-cache',
                         'Connection': 'keep-alive',
-                        'X-Service-Name': service.name,
+                        'X-Service-Name': serviceName,
                     },
                 });
 
             } catch (error) {
                 console.error('Error:', error);
                 return new Response('Server Error', { status: 500, headers: corsHeaders });
+            }
+        }
+
+        // --- ENDPOINTS DE WORKFLOWS (AUTOMATIZACIÓN) ---
+
+        // 1. Crear un Workflow (Guardar Receta)
+        if (req.method === 'POST' && (pathname === '/api/workflows' || pathname === '/workflows')) {
+            const body = await req.json() as { name: string; description?: string; steps: any[] };
+            const { name, description, steps } = body;
+
+            if (!name || !steps || !Array.isArray(steps)) {
+                return new Response(JSON.stringify({ error: 'Invalid workflow data' }), { status: 400 });
+            }
+
+            const result = dbManager.createWorkflow(name, description || '', steps);
+            return new Response(JSON.stringify({ success: true, id: result?.id }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        // 2. Listar Workflows
+        if (req.method === 'GET' && (pathname === '/api/workflows' || pathname === '/workflows')) {
+            const flows = dbManager.listWorkflows();
+            return new Response(JSON.stringify(flows), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+        }
+
+        // 3. Ejecutar Workflow (RUN)
+        // Ejemplo: POST /api/workflows/1/run
+        const runMatch = pathname.match(/^\/api\/workflows\/(\d+)\/run$/);
+        if (req.method === 'POST' && runMatch) {
+            const workflowId = parseInt(runMatch[1]);
+            const body = await req.json().catch(() => ({})) as { input?: string };
+            const initialContext = body?.input || '';
+
+            try {
+                // Ejecutamos en "background" (sin bloquear) o esperamos?
+                // Para demo, esperamos el resultado final.
+                const { workflowEngine } = await import('./services/workflow');
+                const result = await workflowEngine.execute(workflowId, initialContext);
+
+                return new Response(JSON.stringify({ success: true, output: result }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                return new Response(JSON.stringify({ success: false, error: String(error) }), {
+                    status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+        }
+
+        // 4. Ejecutar Workflow DIRECTO (sin guardar - para Visual Editor)
+        if (req.method === 'POST' && pathname === '/api/workflows/execute-direct') {
+            const body = await req.json().catch(() => ({})) as { steps?: any[]; input?: string };
+            const { steps, input } = body;
+
+            if (!steps || !Array.isArray(steps) || steps.length === 0) {
+                return new Response(JSON.stringify({ success: false, error: 'No steps provided' }), {
+                    status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            }
+
+            try {
+                const { workflowEngine } = await import('./services/workflow');
+                const result = await workflowEngine.executeDirect(steps, input || 'Direct execution');
+
+                return new Response(JSON.stringify({ success: true, output: result }), {
+                    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
+            } catch (error) {
+                return new Response(JSON.stringify({ success: false, error: String(error) }), {
+                    status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+                });
             }
         }
 

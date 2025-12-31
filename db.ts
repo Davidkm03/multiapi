@@ -2,7 +2,7 @@ import { Database } from "bun:sqlite";
 
 const db = new Database("database.sqlite");
 
-// Inicializar tabla si no existe
+// Inicializar tabla de KEYS
 db.run(`
   CREATE TABLE IF NOT EXISTS api_keys (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -12,6 +12,17 @@ db.run(`
     last_used_at DATETIME,
     usage_count INTEGER DEFAULT 0
   )
+`);
+
+// Inicializar tabla de WORKFLOWS (Tu propio n8n)
+db.run(`
+    CREATE TABLE IF NOT EXISTS workflows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        description TEXT,
+        steps_json TEXT NOT NULL, -- Guardaremos el array de pasos como JSON string
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
 `);
 
 export interface ApiKey {
@@ -24,31 +35,51 @@ export interface ApiKey {
 }
 
 export const dbManager = {
-    // Crear una nueva llave
+    // --- API KEYS ---
     createKey: (name: string): ApiKey => {
-        const key = `sk-multi-${crypto.randomUUID().split('-')[0]}${crypto.randomUUID().split('-')[1]}`; // Ejemplo: sk-multi-3f4a2b9c
+        const key = `sk-multi-${crypto.randomUUID().split('-')[0]}${crypto.randomUUID().split('-')[1]}`;
         const query = db.query(`INSERT INTO api_keys (key, name) VALUES ($key, $name) RETURNING *`);
         return query.get({ $key: key, $name: name }) as ApiKey;
     },
 
-    // Listar todas las llaves
     listKeys: (): ApiKey[] => {
         return db.query("SELECT * FROM api_keys ORDER BY created_at DESC").all() as ApiKey[];
     },
 
-    // Eliminar llave
     deleteKey: (id: number) => {
         db.run("DELETE FROM api_keys WHERE id = ?", [id]);
     },
 
-    // Validar y actualizar uso
     validateAndTrack: (key: string): boolean => {
         const record = db.query("SELECT id FROM api_keys WHERE key = $key").get({ $key: key });
         if (record) {
-            // Actualizar contador y timestamp (async fire & forget idealmente, pero SQLite es rápido)
             db.run("UPDATE api_keys SET usage_count = usage_count + 1, last_used_at = CURRENT_TIMESTAMP WHERE key = ?", [key]);
             return true;
         }
         return false;
+    },
+
+    // --- WORKFLOWS ENGINE (DATABASE LEVEL) ---
+    createWorkflow: (name: string, description: string, steps: any[]) => {
+        const query = db.query('INSERT INTO workflows (name, description, steps_json) VALUES ($name, $desc, $steps) RETURNING id');
+        return query.get({
+            $name: name,
+            $desc: description,
+            $steps: JSON.stringify(steps)
+        });
+    },
+
+    listWorkflows: () => {
+        const rows = db.query('SELECT * FROM workflows ORDER BY created_at DESC').all();
+        return rows.map((r: any) => ({
+            ...r,
+            steps: JSON.parse(r.steps_json)
+        }));
+    },
+
+    getWorkflow: (id: number) => {
+        const row = db.query('SELECT * FROM workflows WHERE id = ?').get(id) as any;
+        if (!row) return null;
+        return { ...row, steps: JSON.parse(row.steps_json) };
     }
 };

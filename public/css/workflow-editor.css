@@ -1,0 +1,591 @@
+/* ========================================
+   WORKFLOW EDITOR - n8n Style
+   ======================================== */
+
+.workflow-editor-container {
+    display: flex;
+    height: calc(100vh - 120px);
+    width: 100%;
+    /* Remove max-width for full screen experience */
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+}
+
+/* Full width mode when sidebar is collapsed */
+.workflow-editor-container.fullscreen {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    height: 100vh;
+    border-radius: 0;
+}
+
+/* --- Sidebar with Node Palette --- */
+.node-palette {
+    width: 180px;
+    min-width: 180px;
+    background: var(--bg-app);
+    border-right: 1px solid var(--border);
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    overflow-y: auto;
+}
+
+.node-palette.collapsed {
+    width: 50px;
+    min-width: 50px;
+    padding: 0.5rem;
+}
+
+.node-palette.collapsed .palette-title,
+.node-palette.collapsed .node-label {
+    display: none;
+}
+
+.palette-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.35rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.palette-node {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: var(--bg-element);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    cursor: grab;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.palette-node:hover {
+    border-color: var(--primary);
+    transform: translateX(2px);
+}
+
+.palette-node:active {
+    cursor: grabbing;
+}
+
+.palette-node .node-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+.palette-node .node-icon.llm {
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+}
+
+.palette-node .node-icon.image {
+    background: linear-gradient(135deg, #ec4899, #f472b6);
+}
+
+.palette-node .node-icon.http {
+    background: linear-gradient(135deg, #22c55e, #4ade80);
+}
+
+.palette-node .node-icon.delay {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+}
+
+.palette-node .node-icon.trigger {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+}
+
+.palette-node .node-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- Canvas Area --- */
+.editor-canvas-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid var(--border);
+}
+
+.editor-toolbar-left {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.editor-toolbar-left input {
+    background: var(--bg-element);
+    border: 1px solid var(--border);
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-md);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    width: 200px;
+}
+
+.editor-toolbar-right {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.btn-execute {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: none;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.1s, box-shadow 0.2s;
+}
+
+.btn-execute:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+}
+
+.btn-save {
+    background: var(--bg-element);
+    color: var(--text-main);
+    border: 1px solid var(--border);
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-save:hover {
+    background: var(--border);
+}
+
+/* --- Drawflow Canvas Overrides --- */
+#drawflow {
+    flex: 1;
+    background-color: #0a0a0c;
+    background-image:
+        radial-gradient(circle, #27272a 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Drawflow Node Styling */
+.drawflow .drawflow-node {
+    background: var(--bg-panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    min-width: 180px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.drawflow .drawflow-node:hover {
+    border-color: var(--primary);
+}
+
+.drawflow .drawflow-node.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.drawflow .drawflow-node .drawflow_content_node {
+    padding: 0;
+}
+
+/* Custom Node Content */
+.node-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.node-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 10px 10px 0 0;
+}
+
+.node-header .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    font-size: 0.9rem;
+}
+
+.node-header .title {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--text-main);
+}
+
+.node-body {
+    padding: 0.75rem 1rem;
+}
+
+.node-body label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+}
+
+.node-body input,
+.node-body textarea,
+.node-body select {
+    width: 100%;
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem;
+    color: var(--text-main);
+    font-size: 0.8rem;
+    font-family: inherit;
+    cursor: text;
+    pointer-events: auto;
+    /* Ensure inputs are clickable */
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.node-body input:hover,
+.node-body textarea:hover,
+.node-body select:hover {
+    border-color: var(--primary);
+}
+
+.node-body input:focus,
+.node-body textarea:focus,
+.node-body select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.node-body textarea {
+    resize: vertical;
+    min-height: 50px;
+}
+
+/* Make sure node content allows interaction */
+.drawflow-node .drawflow_content_node {
+    pointer-events: auto;
+}
+
+/* Connection Lines */
+.drawflow .connection .main-path {
+    stroke: var(--primary);
+    stroke-width: 3px;
+}
+
+.drawflow .connection .main-path:hover {
+    stroke: #60a5fa;
+    stroke-width: 4px;
+}
+
+/* Input/Output Dots */
+.drawflow .drawflow-node .input,
+.drawflow .drawflow-node .output {
+    width: 14px;
+    height: 14px;
+    background: var(--primary);
+    border: 2px solid var(--bg-panel);
+}
+
+.drawflow .drawflow-node .input:hover,
+.drawflow .drawflow-node .output:hover {
+    background: #60a5fa;
+    transform: scale(1.3);
+}
+
+/* Delete Button on Connection */
+.drawflow .drawflow-delete {
+    background: #ef4444;
+    color: white;
+    border: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+/* Mini-map (future) */
+.editor-minimap {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+    width: 150px;
+    height: 100px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+}
+
+/* Zoom Controls */
+.zoom-controls {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    display: flex;
+    gap: 0.25rem;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+}
+
+.zoom-controls button {
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: background 0.2s;
+}
+
+.zoom-controls button:hover {
+    background: var(--bg-element);
+}
+
+.zoom-controls .zoom-level {
+    display: flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-left: 1px solid var(--border);
+    border-right: 1px solid var(--border);
+}
+
+/* --- Main Editor Container --- */
+.editor-main {
+    display: flex;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- Properties Panel (n8n Style) --- */
+.properties-panel {
+    width: 360px;
+    min-width: 360px;
+    background: var(--bg-panel);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.25s ease, opacity 0.25s ease;
+    z-index: 50;
+}
+
+.properties-panel.hidden {
+    display: none;
+}
+
+.properties-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.properties-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.props-close {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.props-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+}
+
+.properties-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.properties-body .prop-group {
+    margin-bottom: 1.25rem;
+}
+
+.properties-body .prop-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.properties-body input,
+.properties-body textarea,
+.properties-body select {
+    width: 100%;
+    background: var(--bg-app);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.6rem 0.75rem;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.properties-body input:focus,
+.properties-body textarea:focus,
+.properties-body select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.properties-body textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: 'Monaco', 'Menlo', monospace;
+    font-size: 0.8rem;
+}
+
+.properties-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+}
+
+.btn-delete-node {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 6px;
+    color: #ef4444;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-delete-node:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: #ef4444;
+}
+
+/* --- n8n Compact Node Style --- */
+.drawflow .drawflow-node {
+    background: var(--bg-panel);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    min-width: 140px;
+    max-width: 180px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.1s;
+}
+
+.drawflow .drawflow-node:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+    transform: translateY(-1px);
+}
+
+.drawflow .drawflow-node.selected {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Compact node content */
+.node-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.node-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+}
+
+.node-header .icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.node-header .title {
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-main);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.node-body {
+    padding: 0 0.75rem 0.6rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Hide node body for compact style (only show header) */
+.node-body:empty {
+    display: none;
+}

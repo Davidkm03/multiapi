@@ -1,0 +1,39 @@
+/* Nodes that require configuration (missing credentials) */
+.drawflow-node.needs-config {
+    border: 2px solid #eab308 !important;
+    /* Yellow warning color */
+    box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
+    animation: pulse-warning 2s infinite;
+}
+
+.drawflow-node.needs-config .title {
+    background: #eab308;
+    color: #000;
+}
+
+.drawflow-node.needs-config::after {
+    content: "⚠️ Configurar";
+    position: absolute;
+    top: -25px;
+    right: 0;
+    background: #eab308;
+    color: #000;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+}
+
+@keyframes pulse-warning {
+    0% {
+        box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(234, 179, 8, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(234, 179, 8, 0);
+    }
+}

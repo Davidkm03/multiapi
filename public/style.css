@@ -62,6 +62,26 @@ header {
     letter-spacing: -0.025em;
 }
 
+.playground-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    width: 100%;
+}
+
+.icon-btn.settings {
+    background: var(--bg-element);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+}
+
+.icon-btn.settings:hover {
+    background: var(--border);
+    color: var(--text-main);
+}
+
+
 .logo-icon {
     width: 32px;
     height: 32px;
@@ -580,14 +600,74 @@ button.send-btn:hover {
     border-left: 3px solid #ef4444;
 }
 
+/* Image Upload Styling */
+.icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 0 0.5rem;
+    display: grid;
+    place-items: center;
+    transition: color 0.2s;
+}
+
+.icon-btn:hover {
+    color: var(--primary);
+}
+
+.image-preview {
+    position: absolute;
+    bottom: 100%;
+    left: 1rem;
+    background: var(--bg-element);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: flex-start;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    animation: fadeIn 0.2s ease;
+}
+
+.image-preview img {
+    max-width: 100px;
+    max-height: 100px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.remove-img-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    margin-left: -10px;
+    margin-top: -10px;
+    font-size: 12px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.remove-img-btn:hover {
+    background: #ef4444;
+}
+
 /* Modal Overlay */
 .modal-overlay {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
-    display: grid;
-    place-items: center;
+    display: flex;
+    /* Changed from grid to flex for robust centering */
+    justify-content: center;
+    align-items: center;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.2s;

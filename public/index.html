@@ -6,6 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MultiAPI Nexus | Developer Hub</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Drawflow Library -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jerosoler/Drawflow/dist/drawflow.min.css">
+    <!-- Workflow Editor Custom Styles -->
+    <link rel="stylesheet" href="css/workflow-editor.css">
+    <link rel="stylesheet" href="css/node-warnings.css">
 </head>
 
 <body>
@@ -23,6 +28,7 @@
 
             <nav class="nav-tabs">
                 <button class="tab-btn active" onclick="switchTab('playground')">Playground</button>
+                <button class="tab-btn" onclick="switchTab('workflows')">Automatizaciones</button>
                 <button class="tab-btn" onclick="switchTab('keys')">Mis Llaves</button>
                 <button class="tab-btn" onclick="switchTab('integration')">Documentación</button>
             </nav>
@@ -37,9 +43,19 @@
                     * Requiere una llave activa. Selecciona una en el menú inferior si usas el Playground.
                     <select id="playground-key-select"
                         style="background: var(--bg-element); color: white; border: 1px solid var(--border); padding: 4px; border-radius: 4px;">
-                        <option value="">Selecciona tu API Key...</option>
                     </select>
+                    <button class="icon-btn" onclick="openSettings()" title="Configuración del Agente"
+                        style="border: 1px solid var(--border); border-radius: var(--radius-md); height: 42px; width: 42px;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path
+                                d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z">
+                            </path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                    </button>
                 </div>
+
                 <div class="chat-container">
                     <div id="messages-container" class="messages-area">
                         <!-- Welcome Message -->
@@ -56,6 +72,24 @@
 
                     <div class="input-area">
                         <form id="chat-form" class="input-wrapper">
+                            <!-- Image Upload & Preview -->
+                            <input type="file" id="image-upload" accept="image/*" style="display: none;">
+
+                            <div id="image-preview-container" class="image-preview" style="display: none;">
+                                <img id="image-preview" src="" alt="Preview">
+                                <button type="button" class="remove-img-btn" onclick="clearImageSelection()">×</button>
+                            </div>
+
+                            <button type="button" class="icon-btn"
+                                onclick="document.getElementById('image-upload').click()" title="Adjuntar imagen">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path
+                                        d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48">
+                                    </path>
+                                </svg>
+                            </button>
+
                             <textarea id="message-input"
                                 placeholder="Escribe tu prompt aquí... (Shift+Enter para nueva línea)"
                                 required></textarea>
@@ -67,6 +101,173 @@
                                 </svg>
                             </button>
                         </form>
+                    </div>
+                </div>
+            </section>
+
+            <!-- WORKFLOWS TAB - VISUAL EDITOR -->
+            <section id="workflows" class="view-section">
+                <div class="workflow-editor-container">
+                    <!-- Node Palette (Sidebar) -->
+                    <div class="node-palette">
+                        <div class="palette-title">Available Nodes</div>
+
+                        <div class="palette-node" draggable="true" data-node-type="trigger">
+                            <div class="node-icon trigger">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                </svg>
+                            </div>
+                            <span class="node-label">Trigger</span>
+                        </div>
+
+                        <div class="palette-node" draggable="true" data-node-type="llm">
+                            <div class="node-icon llm">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"></path>
+                                    <path d="M16 14v2a4 4 0 0 1-8 0v-2"></path>
+                                    <line x1="12" y1="18" x2="12" y2="22"></line>
+                                    <line x1="8" y1="22" x2="16" y2="22"></line>
+                                </svg>
+                            </div>
+                            <span class="node-label">LLM (AI)</span>
+                        </div>
+
+                        <div class="palette-node" draggable="true" data-node-type="image">
+                            <div class="node-icon image">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                    <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                                    <polyline points="21 15 16 10 5 21"></polyline>
+                                </svg>
+                            </div>
+                            <span class="node-label">Image Gen</span>
+                        </div>
+
+                        <div class="palette-node" draggable="true" data-node-type="http">
+                            <div class="node-icon http">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <line x1="2" y1="12" x2="22" y2="12"></line>
+                                    <path
+                                        d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
+                                    </path>
+                                </svg>
+                            </div>
+                            <span class="node-label">HTTP Request</span>
+                        </div>
+
+                        <div class="palette-node" draggable="true" data-node-type="delay">
+                            <div class="node-icon delay">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <span class="node-label">Delay</span>
+                        </div>
+                    </div>
+
+                    <!-- Canvas Area -->
+                    <div class="editor-canvas-wrapper">
+                        <!-- Toolbar -->
+                        <div class="editor-toolbar">
+                            <div class="editor-toolbar-left">
+                                <input type="text" id="workflow-name" placeholder="Workflow Name...">
+                                <button class="btn-save" onclick="openImportModal()" title="Import n8n JSON">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" style="margin-right: 4px;">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                    </svg>
+                                    Import
+                                </button>
+                                <button class="btn-save" onclick="clearCanvas()" title="Clear canvas">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" style="margin-right: 4px;">
+                                        <polyline points="3 6 5 6 21 6"></polyline>
+                                        <path
+                                            d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                        </path>
+                                    </svg>
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="editor-toolbar-right">
+                                <button class="btn-save" onclick="saveWorkflow()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" style="margin-right: 4px;">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z">
+                                        </path>
+                                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                                        <polyline points="7 3 7 8 15 8"></polyline>
+                                    </svg>
+                                    Save
+                                </button>
+                                <button class="btn-execute" onclick="executeWorkflow()">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"
+                                        style="margin-right: 4px;">
+                                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                                    </svg>
+                                    Execute
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Main Canvas Container -->
+                        <div class="editor-main">
+                            <!-- Drawflow Canvas -->
+                            <div id="drawflow" style="position: relative; flex: 1;">
+                                <!-- Zoom Controls -->
+                                <div class="zoom-controls">
+                                    <button onclick="zoomOut()">-</button>
+                                    <span class="zoom-level" id="zoom-level">100%</span>
+                                    <button onclick="zoomIn()">+</button>
+                                    <button onclick="zoomReset()" title="Reset">
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <polyline points="1 4 1 10 7 10"></polyline>
+                                            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Properties Panel (n8n style) -->
+                            <div id="properties-panel" class="properties-panel hidden">
+                                <div class="properties-header">
+                                    <h3 id="props-node-name">Node Properties</h3>
+                                    <button class="props-close" onclick="closePropertiesPanel()">
+                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                        </svg>
+                                    </button>
+                                </div>
+                                <div class="properties-body" id="props-body">
+                                    <!-- Dynamic content here -->
+                                </div>
+                                <div class="properties-footer">
+                                    <button class="btn-delete-node" onclick="deleteSelectedNode()">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                            stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"></polyline>
+                                            <path
+                                                d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2">
+                                            </path>
+                                        </svg>
+                                        Delete Node
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -154,7 +355,8 @@
                                 datos'</span>],
                             ],
                             <span class="token string">'response_format'</span> => [<span
-                                class="token string">'type'</span> => <span class="token string">'json_object'</span>]
+                                class="token string">'type'</span> =>
+                            <span class="token string">'json_object'</span>]
                             ]);
 
                             return response()->json(json_decode($response->choices[0]->message->content));
@@ -183,7 +385,8 @@
 
                             <span class="token keyword">while</span> (<span class="token keyword">true</span>) {
                             <span class="token keyword">const</span> { done, value } = <span
-                                class="token keyword">await</span> reader.<span class="token function">read</span>();
+                                class="token keyword">await</span>
+                            reader.<span class="token function">read</span>();
                             <span class="token keyword">if</span> (done) <span class="token keyword">break</span>;
                             console.<span class="token function">log</span>(decoder.<span
                                 class="token function">decode</span>(value));
@@ -220,7 +423,8 @@
                             -H <span class="token string">"Content-Type: application/json"</span> \
                             -d '{
                             <span class="token string">"messages"</span>: [{"role": <span
-                                class="token string">"user"</span>, "content": <span class="token string">"Explícame la
+                                class="token string">"user"</span>,
+                            "content": <span class="token string">"Explícame la
                                 teoría de cuerdas"</span>}]
                             }' --no-buffer
                         </div>
@@ -267,13 +471,74 @@
         </div>
     </div>
 
-    <!-- Toast -->
-    <div id="toast" class="toast">
-        <span id="toast-icon">✅</span>
-        <span id="toast-msg">Operación exitosa</span>
+    <!-- Agent Settings Modal -->
+    <div id="settings-modal-overlay" class="modal-overlay">
+        <div class="modal" style="width: 500px; max-width: 90vw;">
+            <h3>Configuración del Agente</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">Define la personalidad y reglas
+                del asistente.</p>
+
+            <label style="display: block; margin-bottom: 0.5rem; color: var(--text-color);">System Instruction</label>
+            <textarea id="system-prompt-input" rows="6"
+                style="width: 100%; margin-bottom: 1rem; font-family: monospace; font-size: 0.9rem;"
+                placeholder="Ej: Eres un experto en automatización. Responde solo con JSON válido..."></textarea>
+
+            <div class="modal-actions">
+                <button class="btn-secondary" onclick="closeSettings()">Cerrar</button>
+                <button class="primary-btn" onclick="saveSettings()">Guardar Configuración</button>
+            </div>
+        </div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Workflow Result Modal -->
+    <div id="workflow-result-overlay" class="modal-overlay">
+        <div class="modal"
+            style="width: 600px; max-width: 95vw; max-height: 85vh; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h3>Resultado de Ejecución</h3>
+                <button class="icon-btn" onclick="closeResultModal()" style="font-size: 1.5rem;">&times;</button>
+            </div>
+
+            <div id="workflow-result-content"
+                style="flex: 1; overflow-y: auto; background: var(--bg-app); padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border); font-family: monospace; font-size: 0.9rem; white-space: pre-wrap;">
+                Esperando resultados...
+            </div>
+
+            <div class="modal-actions" style="margin-top: 1rem;">
+                <button class="primary-btn" onclick="closeResultModal()">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import n8n Workflow Modal -->
+    <div id="import-modal-overlay" class="modal-overlay">
+        <div class="modal" style="width: 600px; max-width: 95vw;">
+            <h3>Import Workflow</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1rem; font-size: 0.9rem;">
+                Paste the JSON from an n8n workflow or compatible format.
+            </p>
+
+            <textarea id="import-json-input" rows="12"
+                style="width: 100%; font-family: monospace; font-size: 0.85rem; background: var(--bg-app); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 1rem; color: var(--text-main); resize: vertical;"
+                placeholder='{"name": "My Workflow", "nodes": [...], "connections": {...}}'></textarea>
+
+            <div class="modal-actions" style="margin-top: 1rem;">
+                <button class="btn-secondary" onclick="closeImportModal()">Cancelar</button>
+                <button class="primary-btn" onclick="importWorkflow()">Importar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast">
+        <span id="toast-icon">[OK]</span>
+        <span id="toast-msg">Operation successful</span>
+    </div>
+
+    <!-- Drawflow Library JS -->
+    <script src="https://cdn.jsdelivr.net/gh/jerosoler/Drawflow/dist/drawflow.min.js"></script>
+
+    <script type="module" src="js/main.js"></script>
 </body>
 
 </html>
