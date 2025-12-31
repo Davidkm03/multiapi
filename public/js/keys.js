@@ -46,7 +46,7 @@ async function loadKeys() {
 }
 
 async function createNewKey() {
-    const nameInput = document.getElementById('new-key-name');
+    const nameInput = document.getElementById('create-api-key-input');
     const name = nameInput.value.trim();
 
     if (!name) {
